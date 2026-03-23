@@ -10,7 +10,6 @@ Vacation Optimizer is a web app for comparing flexible flight windows, hotel opt
 - Hotel search with destination suggestions
 - Combined planner view for flights and hotels
 - Saved flight searches
-- Render-ready deployment with `render.yaml`
 - Environment controls for enabling/disabling live SerpApi usage
 
 ## Stack
@@ -19,7 +18,6 @@ Vacation Optimizer is a web app for comparing flexible flight windows, hotel opt
 - Jinja2 templates
 - SerpApi
 - Supabase for cached flight prices
-- Render for deployment
 
 ## Project Structure
 
@@ -30,7 +28,6 @@ hotel_optimizer.py       Hotel search and booking-link logic
 templates/               HTML templates for flights, hotels, and planner
 static/                  Shared CSS
 data/saved_searches.json Local saved search storage
-render.yaml              Render blueprint config
 ```
 
 ## Product Overview
@@ -53,27 +50,6 @@ The app includes two operator controls:
   - Turns live SerpApi searches on or off
 - `MAX_LIVE_COMBINATIONS=15`
   - Caps how many live flight combinations one search can run
-
-## Deploying To Render
-
-This repo includes [render.yaml](./render.yaml) for Render Blueprint deploys.
-
-1. Push the repo to GitHub.
-2. In Render, create a new `Blueprint`.
-3. Select the repo.
-4. Fill in these secret environment variables:
-
-- `SERPAPI_KEY`
-- `SUPABASE_URL`
-- `SUPABASE_KEY`
-- `SERPAPI_ENABLED`
-- `MAX_LIVE_COMBINATIONS`
-
-The app will start with:
-
-```bash
-uvicorn main:app --host 0.0.0.0 --port $PORT
-```
 
 ## Notes
 
