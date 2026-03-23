@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hotel Optimizer</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <nav class="top-nav">
+        <a class="nav-link" href="/">Flights</a>
+        <a class="nav-link nav-link-active" href="/hotels">Hotels</a>
+        <a class="nav-link" href="/planner">Planner</a>
+      </nav>
+
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Hotel Optimizer</p>
+          <h1>Compare hotel deals without tab-hopping.</h1>
+          <p class="intro">
+            Search one city, compare nightly and total pricing, and jump straight to booking
+            sites when SerpApi provides a hotel seller link.
+          </p>
+        </div>
+        <aside class="hero-card">
+          <p class="hero-card-label">Built for trip planning</p>
+          <ul>
+            <li>Google Hotels results via SerpApi</li>
+            <li>Nightly and total rate display</li>
+            <li>Direct booking links when available</li>
+          </ul>
+        </aside>
+      </section>
+
+      <section class="layout single-main">
+        <section class="panel">
+          <form method="post" action="/hotels/search" class="search-form">
+            <div class="section-header">
+              <h2>Search Hotels</h2>
+              <p>Pick a destination and stay window to compare hotel options.</p>
+            </div>
+
+            <div class="form-grid">
+              <label class="wide-field">
+                <span>Destination</span>
+                <input
+                  type="text"
+                  list="hotel-destination-suggestions"
+                  name="location"
+                  value="{{ hotel_form_data.location }}"
+                  placeholder="Miami Beach"
+                  required
+                />
+              </label>
+
+              <label>
+                <span>Check-in</span>
+                <input
+                  type="date"
+                  id="hotel_check_in"
+                  name="check_in"
+                  value="{{ hotel_form_data.check_in }}"
+                  min="{{ min_stay_date }}"
+                  required
+                />
+              </label>
+
+              <label>
+                <span>Check-out</span>
+                <input
+                  type="date"
+                  id="hotel_check_out"
+                  name="check_out"
+                  value="{{ hotel_form_data.check_out }}"
+                  min="{{ hotel_form_data.check_in }}"
+                  required
+                />
+              </label>
+
+              <label>
+                <span>Adults</span>
+                <input
+                  type="number"
+                  name="adults"
+                  min="1"
+                  max="9"
+                  value="{{ hotel_form_data.adults }}"
+                  required
+                />
+              </label>
+            </div>
+
+            <div class="button-row">
+              <button type="submit">Find Best Hotels</button>
+            </div>
+          </form>
+
+          {% if hotel_message %}
+          <p class="message">{{ hotel_message }}</p>
+          {% endif %}
+
+          {% if hotel_error %}
+          <p class="message error">{{ hotel_error }}</p>
+          {% endif %}
+
+          {% if hotel_best_option %}
+          <section class="best-option">
+            <h2>Best Hotel Option</h2>
+            <div class="metrics">
+              <article>
+                <span>Hotel</span>
+                <strong>{{ hotel_best_option.name }}</strong>
+              </article>
+              <article>
+                <span>Total Price</span>
+                <strong>{{ hotel_best_option.price_display }}</strong>
+              </article>
+              <article>
+                <span>Nightly</span>
+                <strong>{{ hotel_best_option.nightly_price_display or "Nightly rate not listed" }}</strong>
+              </article>
+              <article>
+                <span>Rating</span>
+                <strong>{{ hotel_best_option.formatted_rating }}</strong>
+              </article>
+              <article>
+                <span>Class</span>
+                <strong>{{ hotel_best_option.formatted_hotel_class }}</strong>
+              </article>
+              <article>
+                <span>Book</span>
+                {% if hotel_best_option.booking_link %}
+                <strong><a class="inline-link" href="{{ hotel_best_option.booking_link }}" target="_blank" rel="noreferrer">{{ hotel_best_option.formatted_booking_action }} via {{ hotel_best_option.booking_source }}</a></strong>
+                {% else %}
+                <strong>{{ hotel_best_option.booking_source }}</strong>
+                {% endif %}
+              </article>
+            </div>
+          </section>
+          {% elif hotel_results is defined and hotel_results|length == 0 and not hotel_error %}
+          <p class="message">No hotel results matched that stay.</p>
+          {% endif %}
+
+          {% if hotel_results %}
+          <section class="results">
+            <h2>Hotel Results</h2>
+            <div class="hotel-grid">
+              {% for hotel in hotel_results %}
+              <article class="hotel-card">
+                <div class="hotel-card-top">
+                  <div>
+                    <h3>{{ hotel.name }}</h3>
+                    <p class="hotel-subtitle">{{ hotel.formatted_hotel_class }} • {{ hotel.formatted_rating }}</p>
+                  </div>
+                  <div class="hotel-price">
+                    <strong>{{ hotel.price_display }}</strong>
+                    <span>{{ hotel.nightly_price_display or "Nightly rate not listed" }}</span>
+                  </div>
+                </div>
+                <p class="hotel-copy">{{ hotel.description or "Description not listed." }}</p>
+                <p class="hotel-meta">{{ hotel.formatted_reviews }}</p>
+                <p class="hotel-meta">{{ hotel.formatted_amenities }}</p>
+                {% if hotel.booking_link %}
+                <a class="ticket-link" href="{{ hotel.booking_link }}" target="_blank" rel="noreferrer">
+                  {{ hotel.formatted_booking_action }} via {{ hotel.booking_source }}
+                </a>
+                {% else %}
+                <span class="muted-cell">{{ hotel.booking_source }}</span>
+                {% endif %}
+              </article>
+              {% endfor %}
+            </div>
+          </section>
+          {% endif %}
+        </section>
+      </section>
+    </main>
+
+    <datalist id="hotel-destination-suggestions">
+      {% for destination in hotel_destination_suggestions %}
+      <option value="{{ destination }}"></option>
+      {% endfor %}
+    </datalist>
+
+    <script>
+      const hotelCheckInInput = document.getElementById("hotel_check_in");
+      const hotelCheckOutInput = document.getElementById("hotel_check_out");
+
+      function syncHotelCheckoutMin() {
+        hotelCheckOutInput.min = hotelCheckInInput.value;
+        if (hotelCheckOutInput.value <= hotelCheckInInput.value) {
+          const nextDay = new Date(hotelCheckInInput.value);
+          nextDay.setDate(nextDay.getDate() + 1);
+          hotelCheckOutInput.value = nextDay.toISOString().slice(0, 10);
+        }
+      }
+
+      hotelCheckInInput.addEventListener("input", syncHotelCheckoutMin);
+      syncHotelCheckoutMin();
+    </script>
+  </body>
+</html>
