@@ -14,7 +14,6 @@ SERPAPI_KEY = os.getenv("SERPAPI_KEY") or os.getenv("API_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 SERPAPI_ENABLED = os.getenv("SERPAPI_ENABLED", "true").lower() == "true"
-MAX_LIVE_COMBINATIONS = int(os.getenv("MAX_LIVE_COMBINATIONS", "40"))
 
 CABIN_CLASS_MAP = {
     "economy": "1",
@@ -421,15 +420,6 @@ def scan_flight_prices(
     results = []
     current = datetime.strptime(start_date, "%Y-%m-%d")
     live_queries = []
-    total_combinations = days_to_scan * (
-        (max_trip_length - min_trip_length + 1) if trip_mode == "round_trip" else 1
-    )
-
-    if total_combinations > MAX_LIVE_COMBINATIONS:
-        raise RuntimeError(
-            "This search is too wide for live mode right now. "
-            f"Try {MAX_LIVE_COMBINATIONS} combinations or fewer, or narrow your dates/trip length."
-        )
 
     for _ in range(days_to_scan):
         outbound_date = current.strftime("%Y-%m-%d")
