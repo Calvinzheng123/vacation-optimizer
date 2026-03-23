@@ -1,6 +1,7 @@
 # Vacation Optimizer
 
 Vacation Optimizer is a travel planning web app for comparing flexible flight windows, hotel options, and full trip combinations in one place at
+
 https://vacation-optimizer.onrender.com
 
 ## What It Does
