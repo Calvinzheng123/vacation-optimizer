@@ -636,7 +636,6 @@ def planner_search(
         ).days
         if trip_mode == "round_trip" and trip_length <= 0:
             raise RuntimeError("Return date must be after departure date.")
-
         flight_results = perform_search(
             {
                 "origin": form_data["origin"],
