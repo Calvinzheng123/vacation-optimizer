@@ -198,6 +198,17 @@ def sort_results(results, sort_by):
     return sorted(results, key=lambda row: row["price"])
 
 
+def cheapest_result_per_airline(results):
+    cheapest_by_airline = {}
+    for row in results:
+        airline_key = tuple(row.get("airline_names") or ["Unknown airline"])
+        current = cheapest_by_airline.get(airline_key)
+        if current is None or row["price"] < current["price"]:
+            cheapest_by_airline[airline_key] = row
+
+    return sorted(cheapest_by_airline.values(), key=lambda row: row["price"])
+
+
 def filter_results(results, max_price):
     if not max_price:
         return results
@@ -630,27 +641,23 @@ def planner_search(
     )
 
     try:
-        trip_length = (
-            date.fromisoformat(form_data["latest_departure"])
-            - date.fromisoformat(form_data["earliest_departure"])
-        ).days
-        if trip_mode == "round_trip" and trip_length <= 0:
-            raise RuntimeError("Return date must be after departure date.")
-        flight_results = perform_search(
-            {
-                "origin": form_data["origin"],
-                "destination": form_data["destination"],
-                "earliest_departure": form_data["earliest_departure"],
-                "latest_departure": form_data["earliest_departure"],
-                "trip_mode": form_data["trip_mode"],
-                "min_trip_length": trip_length if trip_mode == "round_trip" else 1,
-                "max_trip_length": trip_length if trip_mode == "round_trip" else 1,
-                "adults": form_data["adults"],
-                "cabin_class": form_data["cabin_class"],
-                "max_price": form_data["max_price"],
-                "sort_by": form_data["sort_by"],
-                "save_name": "",
-            }
+        flight_results = cheapest_result_per_airline(
+            perform_search(
+                {
+                    "origin": form_data["origin"],
+                    "destination": form_data["destination"],
+                    "earliest_departure": form_data["earliest_departure"],
+                    "latest_departure": form_data["latest_departure"],
+                    "trip_mode": form_data["trip_mode"],
+                    "min_trip_length": form_data["min_trip_length"],
+                    "max_trip_length": form_data["max_trip_length"],
+                    "adults": form_data["adults"],
+                    "cabin_class": form_data["cabin_class"],
+                    "max_price": form_data["max_price"],
+                    "sort_by": form_data["sort_by"],
+                    "save_name": "",
+                }
+            )
         )
         hotel_results = format_hotel_results(
             search_hotels(

@@ -80,7 +80,7 @@
               </label>
 
               <label>
-                <span>Departure date</span>
+                <span>Earliest departure</span>
                 <input
                   type="date"
                   id="planner_earliest_departure"
@@ -92,7 +92,7 @@
               </label>
 
               <label>
-                <span>Return date / hotel check-out</span>
+                <span>Latest departure / hotel check-out</span>
                 <input
                   type="date"
                   id="planner_latest_departure"
@@ -139,9 +139,17 @@
                 </select>
               </label>
             </div>
+            <div class="form-grid">
+              <label class="planner-trip-range">
+                <span>Minimum days to stay</span>
+                <input type="number" name="min_trip_length" min="1" max="21" value="{{ planner_form_data.min_trip_length }}" required />
+              </label>
 
-            <input type="hidden" name="min_trip_length" value="{{ planner_form_data.min_trip_length }}" />
-            <input type="hidden" name="max_trip_length" value="{{ planner_form_data.max_trip_length }}" />
+              <label class="planner-trip-range">
+                <span>Maximum days to stay</span>
+                <input type="number" name="max_trip_length" min="1" max="21" value="{{ planner_form_data.max_trip_length }}" required />
+              </label>
+            </div>
 
             <div class="button-row">
               <button type="submit">Plan My Trip</button>
@@ -187,6 +195,7 @@
           {% if planner_flight_results %}
           <section class="results">
             <h2>Flight Results</h2>
+            <p class="hotel-meta">Showing the cheapest result for each airline.</p>
             <div class="table-wrap">
               <table>
                 <thead>
@@ -267,6 +276,8 @@
     <script>
       const plannerEarliestInput = document.getElementById("planner_earliest_departure");
       const plannerLatestInput = document.getElementById("planner_latest_departure");
+      const plannerTripModeInput = document.getElementById("planner_trip_mode");
+      const plannerTripRangeFields = document.querySelectorAll(".planner-trip-range");
       const plannerDestinationInput = document.querySelector('input[name="destination"]');
       const plannerHotelLocationInput = document.querySelector('input[name="hotel_location"]');
       let hotelLocationTouched = plannerHotelLocationInput.value.trim() !== "Miami Beach";
@@ -294,12 +305,19 @@
         plannerHotelLocationInput.value = normalizeDestinationLabel(plannerDestinationInput.value);
       }
 
+      function syncPlannerTripMode() {
+        const hidden = plannerTripModeInput.value === "one_way";
+        plannerTripRangeFields.forEach((field) => field.classList.toggle("is-hidden", hidden));
+      }
+
       plannerEarliestInput.addEventListener("input", syncPlannerLatestMin);
+      plannerTripModeInput.addEventListener("change", syncPlannerTripMode);
       plannerDestinationInput.addEventListener("input", syncHotelLocationFromDestination);
       plannerHotelLocationInput.addEventListener("input", () => {
         hotelLocationTouched = plannerHotelLocationInput.value.trim() !== "";
       });
       syncPlannerLatestMin();
+      syncPlannerTripMode();
       syncHotelLocationFromDestination();
     </script>
   </body>
