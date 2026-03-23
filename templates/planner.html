@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trip Planner</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <nav class="top-nav">
+        <a class="nav-link" href="/">Flights</a>
+        <a class="nav-link" href="/hotels">Hotels</a>
+        <a class="nav-link nav-link-active" href="/planner">Planner</a>
+      </nav>
+
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Trip Planner</p>
+          <h1>Compare flights and hotels in one pass.</h1>
+          <p class="intro">
+            Search your route and your stay together so you can spot a workable trip faster.
+          </p>
+        </div>
+        <aside class="hero-card">
+          <p class="hero-card-label">One search, two views</p>
+          <ul>
+            <li>Flexible flight windows</li>
+            <li>Hotel destination suggestions</li>
+            <li>Best flight and hotel side by side</li>
+          </ul>
+        </aside>
+      </section>
+
+      <section class="layout single-main">
+        <section class="panel">
+          <form method="post" action="/planner/search" class="search-form" id="planner-form">
+            <div class="section-header">
+              <h2>Plan A Trip</h2>
+              <p>Set your flight route and hotel destination, then compare both result sets together.</p>
+            </div>
+
+            <div class="form-grid">
+              <label>
+                <span>Origin airport</span>
+                <input
+                  type="text"
+                  list="airport-suggestions"
+                  name="origin"
+                  maxlength="32"
+                  value="{{ planner_form_data.origin }}"
+                  placeholder="Charlotte (CLT)"
+                  required
+                />
+              </label>
+
+              <label>
+                <span>Destination airport</span>
+                <input
+                  type="text"
+                  list="airport-suggestions"
+                  name="destination"
+                  maxlength="32"
+                  value="{{ planner_form_data.destination }}"
+                  placeholder="Miami (MIA)"
+                  required
+                />
+              </label>
+
+              <label class="wide-field">
+                <span>Hotel destination</span>
+                <input
+                  type="text"
+                  list="hotel-destination-suggestions"
+                  name="hotel_location"
+                  value="{{ planner_form_data.hotel_location }}"
+                  placeholder="Miami Beach"
+                  required
+                />
+              </label>
+
+              <label>
+                <span>Departure date</span>
+                <input
+                  type="date"
+                  id="planner_earliest_departure"
+                  name="earliest_departure"
+                  value="{{ planner_form_data.earliest_departure }}"
+                  min="{{ min_departure }}"
+                  required
+                />
+              </label>
+
+              <label>
+                <span>Return date / hotel check-out</span>
+                <input
+                  type="date"
+                  id="planner_latest_departure"
+                  name="latest_departure"
+                  value="{{ planner_form_data.latest_departure }}"
+                  min="{{ planner_form_data.earliest_departure }}"
+                  required
+                />
+              </label>
+
+              <label>
+                <span>Trip mode</span>
+                <select id="planner_trip_mode" name="trip_mode">
+                  <option value="round_trip" {% if planner_form_data.trip_mode == "round_trip" %}selected{% endif %}>Round trip</option>
+                  <option value="one_way" {% if planner_form_data.trip_mode == "one_way" %}selected{% endif %}>One way</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Adults</span>
+                <input type="number" name="adults" min="1" max="9" value="{{ planner_form_data.adults }}" required />
+              </label>
+
+              <label>
+                <span>Cabin class</span>
+                <select name="cabin_class">
+                  {% for option in cabin_classes %}
+                  <option value="{{ option.value }}" {% if planner_form_data.cabin_class == option.value %}selected{% endif %}>{{ option.label }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+
+              <label>
+                <span>Max flight price</span>
+                <input type="number" step="0.01" min="0" name="max_price" value="{{ planner_form_data.max_price }}" placeholder="Optional" />
+              </label>
+
+              <label>
+                <span>Sort flights by</span>
+                <select name="sort_by">
+                  {% for option in sort_options %}
+                  <option value="{{ option.value }}" {% if planner_form_data.sort_by == option.value %}selected{% endif %}>{{ option.label }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+            </div>
+
+            <input type="hidden" name="min_trip_length" value="{{ planner_form_data.min_trip_length }}" />
+            <input type="hidden" name="max_trip_length" value="{{ planner_form_data.max_trip_length }}" />
+
+            <div class="button-row">
+              <button type="submit">Plan My Trip</button>
+            </div>
+          </form>
+
+          {% if planner_message %}
+          <p class="message">{{ planner_message }}</p>
+          {% endif %}
+
+          {% if planner_error %}
+          <p class="message error">{{ planner_error }}</p>
+          {% endif %}
+
+          {% if planner_best_flight or planner_best_hotel %}
+          <section class="results">
+            <h2>Best Options</h2>
+            <div class="planner-highlights">
+              {% if planner_best_flight %}
+              <article class="hotel-card">
+                <h3>Best Flight</h3>
+                <p class="hotel-meta">{{ planner_best_flight.origin }} to {{ planner_best_flight.destination }}</p>
+                <p class="hotel-copy">{{ planner_best_flight.formatted_outbound_date }} to {{ planner_best_flight.formatted_return_date }}</p>
+                <p class="hotel-meta">{{ planner_best_flight.formatted_airlines }}</p>
+                <strong>${{ planner_best_flight.price }}</strong>
+              </article>
+              {% endif %}
+              {% if planner_best_hotel %}
+              <article class="hotel-card">
+                <h3>Best Hotel</h3>
+                <p class="hotel-meta">{{ planner_best_hotel.name }}</p>
+                <p class="hotel-copy">{{ planner_best_hotel.formatted_hotel_class }} • {{ planner_best_hotel.formatted_rating }}</p>
+                <p class="hotel-meta">{{ planner_best_hotel.price_display }}</p>
+                {% if planner_best_hotel.booking_link %}
+                <a class="ticket-link" href="{{ planner_best_hotel.booking_link }}" target="_blank" rel="noreferrer">{{ planner_best_hotel.formatted_booking_action }} via {{ planner_best_hotel.booking_source }}</a>
+                {% endif %}
+              </article>
+              {% endif %}
+            </div>
+          </section>
+          {% endif %}
+
+          {% if planner_flight_results %}
+          <section class="results">
+            <h2>Flight Results</h2>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Departure</th>
+                    <th>Return</th>
+                    <th>Airline</th>
+                    <th>Tickets</th>
+                    <th>Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in planner_flight_results %}
+                  <tr>
+                    <td>{{ row.formatted_outbound_date }}</td>
+                    <td>{{ row.formatted_return_date }}</td>
+                    <td>{{ row.formatted_airlines }}</td>
+                    <td>
+                      {% if row.booking_link %}
+                      <a class="ticket-link" href="{{ row.booking_link }}" target="_blank" rel="noreferrer">{{ row.formatted_booking_action }} via {{ row.formatted_booking_provider }}</a>
+                      {% else %}
+                      <span class="muted-cell">{{ row.formatted_booking_provider }}</span>
+                      {% endif %}
+                    </td>
+                    <td>${{ row.price }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </section>
+          {% endif %}
+
+          {% if planner_hotel_results %}
+          <section class="results">
+            <h2>Hotel Results</h2>
+            <div class="hotel-grid">
+              {% for hotel in planner_hotel_results %}
+              <article class="hotel-card">
+                <div class="hotel-card-top">
+                  <div>
+                    <h3>{{ hotel.name }}</h3>
+                    <p class="hotel-subtitle">{{ hotel.formatted_hotel_class }} • {{ hotel.formatted_rating }}</p>
+                  </div>
+                  <div class="hotel-price">
+                    <strong>{{ hotel.price_display }}</strong>
+                    <span>{{ hotel.nightly_price_display or "Nightly rate not listed" }}</span>
+                  </div>
+                </div>
+                <p class="hotel-copy">{{ hotel.description or "Description not listed." }}</p>
+                <p class="hotel-meta">{{ hotel.formatted_amenities }}</p>
+                {% if hotel.booking_link %}
+                <a class="ticket-link" href="{{ hotel.booking_link }}" target="_blank" rel="noreferrer">{{ hotel.formatted_booking_action }} via {{ hotel.booking_source }}</a>
+                {% else %}
+                <span class="muted-cell">{{ hotel.booking_source }}</span>
+                {% endif %}
+              </article>
+              {% endfor %}
+            </div>
+          </section>
+          {% endif %}
+        </section>
+      </section>
+    </main>
+
+    <datalist id="airport-suggestions">
+      {% for airport in airport_suggestions %}
+      <option value="{{ airport.label }}"></option>
+      {% endfor %}
+    </datalist>
+
+    <datalist id="hotel-destination-suggestions">
+      {% for destination in hotel_destination_suggestions %}
+      <option value="{{ destination }}"></option>
+      {% endfor %}
+    </datalist>
+
+    <script>
+      const plannerEarliestInput = document.getElementById("planner_earliest_departure");
+      const plannerLatestInput = document.getElementById("planner_latest_departure");
+      const plannerDestinationInput = document.querySelector('input[name="destination"]');
+      const plannerHotelLocationInput = document.querySelector('input[name="hotel_location"]');
+      let hotelLocationTouched = plannerHotelLocationInput.value.trim() !== "Miami Beach";
+
+      function syncPlannerLatestMin() {
+        plannerLatestInput.min = plannerEarliestInput.value;
+        if (plannerLatestInput.value < plannerEarliestInput.value) {
+          plannerLatestInput.value = plannerEarliestInput.value;
+        }
+      }
+
+      function normalizeDestinationLabel(value) {
+        const trimmed = value.trim();
+        const match = trimmed.match(/^(.*)\(([A-Z]{3})\)$/);
+        if (match) {
+          return match[1].trim();
+        }
+        return trimmed;
+      }
+
+      function syncHotelLocationFromDestination() {
+        if (hotelLocationTouched) {
+          return;
+        }
+        plannerHotelLocationInput.value = normalizeDestinationLabel(plannerDestinationInput.value);
+      }
+
+      plannerEarliestInput.addEventListener("input", syncPlannerLatestMin);
+      plannerDestinationInput.addEventListener("input", syncHotelLocationFromDestination);
+      plannerHotelLocationInput.addEventListener("input", () => {
+        hotelLocationTouched = plannerHotelLocationInput.value.trim() !== "";
+      });
+      syncPlannerLatestMin();
+      syncHotelLocationFromDestination();
+    </script>
+  </body>
+</html>
